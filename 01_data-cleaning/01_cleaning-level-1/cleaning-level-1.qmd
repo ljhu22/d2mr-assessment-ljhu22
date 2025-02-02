@@ -97,13 +97,21 @@ QUESTIONS:
 
 1. What are the differences between the messy dataset and the original mtcars dataset?
 
-<!-- answer below -->
+- The original mtcars dataset is tidy but the messy datset is not.
+- Columns are in a different order: In the messy dataset, the order of columns has been shuffled around. For example, "Car Model" is listed before "mpg," whereas in the original mtcars dataset, "mpg" comes first.
+- Column names do not match: The names of the columns are changed in the messy dataset. For instance, "mpg" is labeled as "mpg (Miles/Gallon)" in the messy version, and "hp" is renamed to "horsepower."
+-Data types are incorrect: The messy dataset treats everything as text, but the original mtcars dataset uses numeric values for columns like "mpg," "hp," and "wt," and categorical values for things like "cylinders" and "gear."
+-Problems in the 'Car Model' column: The car names in the messy dataset have extra spaces, inconsistent capitalization, and potential typos, which isn’t an issue in the original dataset where everything is properly formatted.
+-Commas instead of periods: Some numbers in the messy dataset (like in the "hp" and "wt" columns) use commas instead of periods, which should be fixed to ensure the data is correctly formatted.
+-Inconsistent rounding: The messy dataset doesn’t round numbers like "drat" and "qsec" consistently, whereas the original dataset makes sure all the numbers are rounded to a similar number of decimal places.
 
 2. What are the main issues you need to address in cleaning?
-
-<!-- answer below -->
-
-
+- Rename columns: Adjust column names to match the original dataset (e.g., change "mpg (Miles/Gallon)" back to "mpg" and "horsepower" back to "hp").
+- Reorder columns: Arrange the columns in the same order as the original mtcars dataset for consistency.
+- Change data types: Convert columns like "mpg," "hp," and "wt" to numeric, and columns like "cylinders" and "gear" to factors.
+- Correct values in 'Car Model' column: Remove extra spaces, fix typos, and ensure consistent capitalization in the car model names.
+- Remove commas from numbers: Replace commas with periods in numeric columns like "hp" and "wt" to make the data properly formatted for analysis.
+- Round numbers to the same number of decimal places (1): Ensure that numbers in columns like "drat" and "qsec" are rounded to one decimal place for consistency.
 
 # Clean the Dataset
 
@@ -114,20 +122,26 @@ QUESTIONS:
 #| label: make-cleaning-dataset
 
 # Create a dataset to work with during the cleaning process called "clean.mtcars"
-
+clean.mtcars <- messy.mtcars
 
 ```
 
 
 ## Clean columns/variables
 
+# Check the names and order of columns in iris:
+colnames(mtcars)
+
+# Check the names and order of columns in messy.iris:
+colnames(messy.mtcars)
 
 ```{r}
 
 #| label: rename-columns
 
 # Rename columns to match the original mtcars dataset
-
+clean.mtcars <- messy.mtcars %>%
+  rename(mpg = `mpg (Miles/Gallon)`, cyl = cylinders, disp = dsip, hp = horsepower, drat = drat, wt = wt, qsec = qsec, vs = vs, am = am, gear = gearbox, carb = carburetors)
 
 ```
 
@@ -136,7 +150,8 @@ QUESTIONS:
 #| label: reorder-columns
 
 # Reorder columns to match the original mtcars dataset
-
+clean.mtcars <- clean.mtcars %>%
+  relocate(mpg, cyl, disp, hp, drat, wt, qsec, vs, am, gear, carb)
 
 ```
 
@@ -144,7 +159,7 @@ QUESTIONS:
 
 #| label: correct-data-types
 
-# Correct variable data types
+#222222 Correct variable data types
 
 ```
 
@@ -155,8 +170,10 @@ QUESTIONS:
 #| label: checkpoint-1
 
 # Inspect the current state of the dataset
+head(clean.mtcars)
 
 # Use all.equal() to check if clean.mtcars matches goal.mtcars
+all.equal(clean.mtcars, mtcars)
 
 ```
 
@@ -164,7 +181,7 @@ Questions:
 
 3. The current state of the dataset does not yet match the `goal.mtcars` dataset. Explain the issues that `all.equal()` flags.  Are there groups of issues that can be addressed together?
 
-<!-- answer below -->
+- The current state of the dataset does not yet match the goal.mtcars dataset, as all.equal() flags multiple issues. The main issue is that the columns in clean.mtcars are currently of the wrong data type; they are all being treated as characters, but they should be numeric or factors. Specifically, columns such as mpg, cyl, disp, hp, drat, wt, qsec, vs, am, gear, and carb should be numeric or factors, not characters. Additionally, there is a length mismatch, which suggests that the column order or the number of columns may differ between clean.mtcars and goal.mtcars. These issues can be addressed together by converting the columns to their correct data types and ensuring the columns are correctly ordered and named to match the goal.mtcars dataset.
 
 3. Install (if necessary) and load the `daff` package. In the code chunk below, use the `diff_data()` function to identify the differences between `clean.mtcars` and `goal.mtcars`. 
 
@@ -172,17 +189,20 @@ Questions:
 #| label: diff-data
 
 # Install and/or load the daff package if needed
-# install.package("daff")
-# library(daff)
+
+install.packages("daff")
+library(daff)
 
 # Use render_diff() and diff_data() to identify differences between clean.mtcars and goal.mtcars
-
+render_diff(diff_data(clean.mtcars, mtcars))
 
 ```
 
-How is this method of identifying data discrepancies different from `all.equal()`? Which do you find more helpful at this point?
+2222222How is this method of identifying data discrepancies different from `all.equal()`? Which do you find more helpful at this point?
 
-<!-- answer below -->
+- The main difference is that all.equal() gives a simple yes/no answer or a short description of the differences, while diff_data() visually highlights the differences between datasets, making it much easier to see exactly where they differ.
+
+- diff_data() is more helpful for visually understanding discrepancies, especially in larger datasets. all.equal() is quick and useful for a simple check but doesn’t provide detailed insights.
 
 ## Clean data values
 
