@@ -83,20 +83,35 @@ View(midwest)
 QUESTIONS:
 
 1. What are the differences between the messy dataset and the original midwest dataset?
-
 <!-- answer below -->
+1) Column Order: The columns in the messy dataset are arranged differently from the original dataset.
+2) Column Name Discrepancies: There are several column name issues in the messy dataset, such as "C0unty Name" instead of "County Name" and "Total P0pulation" instead of "Total Population". Some columns are also missing from one dataset but present in the other.
+3) Data Types: In the messy dataset, most of the columns are stored as text, while in the original dataset, many of these should be numeric.
+4) Inconsistent Values: The messy dataset has issues with inconsistent values, like misspelled county names, extra spaces, and capitalization inconsistencies.
+5) Number Formatting: There are inconsistencies in the way numbers are formatted, such as irregular decimal places and potential issues with commas versus periods.
+6) Rounding Differences: The numbers in the messy dataset are not rounded consistently, unlike in the original dataset where the rounding is more standardized.
+
 
 2. What are the biggest issues you need to address in cleaning?
-
 <!-- answer below -->
+1) Rename columns: Several column names have spelling errors, incorrect characters (like "0" instead of "O"), and mismatched names between the two datasets.
+2) Data Type Issues: Many columns that should be numeric are currently stored as text. These need to be converted to the appropriate data types (e.g., population counts and percentages should be numeric) for accurate analysis.
+3) Inconsistent and Misspelled Values: Some county names are misspelled or have extra spaces and formatting issues. These need to be corrected to ensure consistency across the dataset.
+4) Irregular Number Formatting: Numbers in the dataset are not consistently formatted, with potential issues like commas instead of periods, as well as different decimal places. This should be addressed to maintain uniformity.
+5) Rounding Differences: The numbers in the messy dataset have varying decimal places, while the original dataset uses more consistent rounding. Standardizing the number of decimal places is necessary for better data consistency.
 
 3. Are there any differences between the messy dataset and the original dataset that you do not need or want to address in cleaning? If so, why (not)?
+<!-- answer below -->!
+1) Additional Columns in the Messy Dataset: The messy dataset contains a few additional columns, such as "Population per Sq Mile" and "Population Over 18." These extra columns do not need to be removed, because they may contain useful data.
+2) The "Category" Column: Both datasets have a "category" column, but this column might not need much adjustment. If the values in this column are consistent across both datasets, no action is required.
 
-<!-- answer below -->
 
 4. Are there additional cleaning tasks you would like to perform beyond matching the original dataset? If so, what are they and why do you think they are important?
-
 <!-- answer below -->
+
+
+
+
 
 # Cleaning
 
@@ -109,12 +124,75 @@ You can additionally/alternatively construct your cleaning in a single pipeline 
 ## Selecting, renaming, and reordering columns
 
 ```{r}
+#load the dplyr package
+library(dplyr)
+
+# Check column names in the messy dataset
+colnames(messy.midwest)
+
+
+# 1. Selecting relevant columns
+selected_columns <- c("C0unty Name", "State", "Area (sq miles)", "Total P0pulation", 
+                      "Population Density", "Percentage Asian", "Population Over 18", 
+                      "Percentage College", "Percentage Below Poverty")
+
+# 2. Renaming columns to match the original dataset
+messy_cleaned <- messy.midwest %>%
+  rename(
+    county = `C0unty Name`,
+    state = State,
+    area = `Area (sq miles)`,
+    poptotal = `Total P0pulation`,
+    popdensity = `Population Density`,
+    percasian = `Percentage Asian`,
+    popadults = `Population Over 18`,
+    percollege = `Percentage College`,
+    percbelowpoverty = `Percentage Below Poverty`
+  )
+
+# View the structure of the cleaned dataset
+str(messy_cleaned)
+
+# 3. Reordering columns to match the structure
+messy_cleaned <- messy_cleaned %>%
+  select(PID, county, state, area, poptotal, popdensity, popwhite, popblack, popamerindian, popasian, popother, percamerindan, percasian, percother, popadults, perchsd, percollege, percprof, poppovertyknown, percpovertyknown, percbelowpoverty, percchildbelowpovert, percadultpoverty, percelderlypoverty, inmetro, category)
+
+# View the cleaned dataset
+head(messy_cleaned)
 
 ```
 
 ## Changing data types
 
 ```{r}
+#Check the data type of each variable before changing the data types
+str(messy_cleaned)
+
+# Changing data types
+messy_cleaned <- messy_cleaned %>%
+  
+# Convert numeric columns from character to numeric
+ mutate(
+    area = as.numeric(area),
+    popdensity = as.numeric(popdensity),
+    poptotal = as.integer(poptotal),
+    popwhite = as.integer(popwhite),
+    popblack = as.integer(popblack),
+    popamerindian = as.integer(popamerindian),
+    popasian = as.integer(popasian),
+    popother = as.integer(popother),
+    percamerindan = as.numeric(percamerindan),
+    percother = as.numeric(percother),
+    popadults = as.integer(popadults),
+    perchsd = as.numeric(perchsd),
+    percprof = as.numeric(percprof),
+    poppovertyknown = as.integer(poppovertyknown),
+    percpovertyknown = as.numeric(percpovertyknown),
+    percchildbelowpovert = as.numeric(percchildbelowpovert),
+  )
+
+# Check the structure of the data after changing the data types
+str(messy_cleaned)
 
 ```
 
@@ -122,6 +200,40 @@ You can additionally/alternatively construct your cleaning in a single pipeline 
 ## Mutating data
 
 ```{r}
+#| label: Log transform specific variable
+# Log transform the population total
+messy_cleaned <- messy_cleaned %>%
+  mutate(
+    log_popdensity = log(popdensity)
+  )
+
+# View the new log-transformed column
+head(messy_cleaned)
+
+#| label: Create a new column
+# Create a new variable 'poverty_status' based on 'percbelowpoverty'
+messy_cleaned <- messy_cleaned %>%
+  mutate(
+    poverty_status = ifelse(percbelowpoverty > 20, "High Poverty", "Low Poverty")
+  )
+
+# View the new column
+head(messy_cleaned)
+
+#| label: Categorize a variable into levels
+# Categorize population density into different levels
+messy_cleaned <- messy_cleaned %>%
+  mutate(
+    pop_density_category = case_when(
+      popdensity < 500 ~ "Low",
+      popdensity >= 500 & popdensity <= 2000 ~ "Medium",
+      popdensity > 2000 ~ "High",
+      TRUE ~ "Unknown"
+    )
+  )
+
+# View the new column
+head(messy_cleaned)
 
 ```
 
@@ -129,6 +241,51 @@ You can additionally/alternatively construct your cleaning in a single pipeline 
 ## Using stringr and forcats
 
 ```{r}
+#Load the stringr package
+library(stringr)
+
+#| USING stringr
+#| label: Trimming Leading and Trailing Whitespace from the 'county' Column
+# Clean up by removing any extra spaces at the start or end of the county names
+messy_cleaned <- messy_cleaned %>%
+  mutate(county = str_trim(county))
+
+# View the cleaned column
+head(messy_cleaned$county)
+
+#| label: Replacing Text in the 'county' Column
+# Replace any instances of "County" with an empty string
+messy_cleaned <- messy_cleaned %>%
+  mutate(county = str_replace(county, "County", ""))
+
+# View the modified 'county' column
+head(messy_cleaned$county)
+
+#| label:Converting All Text to Uppercase
+# Convert the 'county' column to uppercase
+messy_cleaned <- messy_cleaned %>%
+  mutate(county = str_to_upper(county))
+
+# View the cleaned 'county' column
+head(messy_cleaned$county)
+
+
+#| USING forcats
+#| label: Reordering the Factor Levels of the 'category' Column
+# Rearrange categories by their frequency of appearance
+messy_cleaned <- messy_cleaned %>%
+  mutate(category = fct_infreq(category))
+
+# View the reordered 'category' column
+head(messy_cleaned$category)
+
+#| label: Reordering the Factor Levels of the 'category' Column
+# Set a custom order for the categories
+messy_cleaned <- messy_cleaned %>%
+  mutate(category = fct_relevel(category, "AAR", "AAU", "ALU", "AHR"))
+
+# View the reordered 'category' column with custom order
+head(messy_cleaned$category)
 
 ```
 
@@ -136,6 +293,43 @@ You can additionally/alternatively construct your cleaning in a single pipeline 
 ## Other cleaning tasks
 
 ```{r}
+#| label: Cleaning Missing Data
+#Remove rows with missing values
+messy_cleaned <- messy_cleaned %>%
+  drop_na()
+
+# View the cleaned dataset
+head(messy_cleaned)
+
+#| label:Removing Duplicates
+# Remove duplicate rows on all columns
+messy_cleaned <- messy_cleaned %>%
+  distinct()
+
+# View the cleaned dataset
+head(messy_cleaned)
+
+#| label:Removing Outliers
+#Remove outliers of the Population Density
+# Remove rows where 'popdensity' is greater than 10000
+messy_cleaned <- messy_cleaned %>%
+  filter(popdensity < 10000)
+
+# Remove rows where 'popdensity' is smaller than 400
+messy_cleaned <- messy_cleaned %>%
+  filter(popdensity > 400)
+
+# View the cleaned dataset
+head(messy_cleaned)
+
+#| Formatting and Standardizing Columns
+#capitalizing the first Letter of each word in a country column
+messy_cleaned <- messy_cleaned %>%
+  mutate(county = str_to_title(county))
+
+# View the updated 'county' column
+head(messy_cleaned$county)
+
 
 ```
 
@@ -143,12 +337,29 @@ You can additionally/alternatively construct your cleaning in a single pipeline 
 
 
 ## All cleaning in a single pipeline
-
-
 ```{r}
 
 #| label: one-pipeline
 
+library(dplyr)
+library(stringr)
+
+# Perform all cleaning tasks in a single pipeline
+messy_cleaned <- messy_cleaned %>%
+  # Remove rows with missing values
+  drop_na() %>%
+  
+  # Remove duplicate rows
+  distinct() %>%
+  
+  # Remove outliers in 'popdensity' (greater than 10000 and less than 400)
+  filter(popdensity < 10000, popdensity > 400) %>%
+  
+  # Capitalize the first letter of each word in 'county' column
+  mutate(county = str_to_title(county))
+
+# View the cleaned dataset
+head(messy_cleaned)
 
 ```
 
