@@ -276,16 +276,9 @@ head(messy_cleaned$county)
 messy_cleaned <- messy_cleaned %>%
   mutate(category = fct_infreq(category))
 
-# View the reordered 'category' column
+# view the reordered 'category' column
 head(messy_cleaned$category)
 
-#| label: Reordering the Factor Levels of the 'category' Column
-# Set a custom order for the categories
-messy_cleaned <- messy_cleaned %>%
-  mutate(category = fct_relevel(category, "AAR", "AAU", "ALU", "AHR"))
-
-# View the reordered 'category' column with custom order
-head(messy_cleaned$category)
 
 ```
 
@@ -362,34 +355,93 @@ messy_cleaned <- messy_cleaned %>%
 head(messy_cleaned)
 
 ```
-
-
-
+ban
 # Reflection
 
 QUESTIONS:
 
 1. Is your dataset identical to `midwest`? If not, what is different? (Remember the functions `all.equal()` and `diff_data()` can help here.)
 
-<!-- answer below -->
+NO, they are not identical.
+
+1) Missing Data: I removed rows with missing values. Any rows with missing data in any column were excluded, making the cleaned dataset smaller than the original.
+2) Duplicates: Duplicate rows were removed from the dataset. If the original dataset had any repeated rows, they were eliminated in the cleaned dataset.
+3) Outliers: I filtered out rows where popdensity was greater than 10,000 or less than 400. This removed extreme values that were considered outliers, leading to a difference from the original dataset if those values were present.
+4) Text Formatting:
+  4.1)Trimming Whitespace: I removed extra spaces from the county column. Any leading or trailing spaces were eliminated.
+  4.2)Replacing "County": I replaced the word "County" with an empty string in the county column. This changed how county names were represented.
+  4.3)Uppercase Transformation: I converted the county column to uppercase. This transformation ensured consistency in the text format but deviated from the original midwest dataset, which likely had different capitalization.
+5)Creating New Columns:
+  5.1)poverty_status: I created a new column based on percbelowpoverty, categorizing areas as either "High Poverty" or "Low Poverty" based on whether the percentage was greater than 20. This column wasn't present in the original dataset.
+  5.2)pop_density_category: I categorized popdensity into three categories ("Low", "Medium", "High", and "Unknown") using case_when(). This categorization wasn’t in the original dataset.
+6)Log Transformation: I applied a log transformation to the popdensity column and created a new column log_popdensity. This transformation wasn’t part of the original dataset.
+7) Data Type Conversion: I converted several columns from character (chr) to numeric or integer. This included columns like popdensity, poptotal, popwhite, popblack, etc., ensuring the correct data types for analysis.
+8) Reordering Factor Levels: I reordered the levels of the category column. The original dataset likely had different factor levels and orderings.
+
 
 2. Did you make any choices to clean the data that resulted in the dataset not matching the original? Why did you make those choices?
 
-<!-- answer below -->
+Yes, several choices were made that caused the cleaned dataset to differ from the original.
+1)Removing Missing Data: Rows with missing values were removed. This was done to ensure the dataset was complete, but it reduced the size of the dataset compared to the original.
+Removing Duplicates: Duplicate rows were removed to avoid redundancy in the dataset. This resulted in a cleaned dataset that is not identical to the original if duplicates existed.
+2)Outlier Removal: Extreme values of popdensity (greater than 10,000 or less than 400) were filtered out because such outliers could distort the analysis. This was done to make the data more meaningful for analysis, but it led to a difference from the original dataset.
+3)Text Formatting Changes: The county column was changed to uppercase and had "County" removed. These changes were made for consistency and readability, but they differed from the original dataset’s text formatting.
+4)Log Transformation: A log transformation was applied to popdensity to handle skewness in the data. This altered the dataset compared to the original, which did not have this transformation.
+5)New Column Creation: The poverty_status and pop_density_category columns were added based on existing data to categorize areas by poverty level and population density. These transformations were not present in the original dataset.
+
 
 3. Were there any cleaning steps -- whether necessary to recreate the original df or just because you wanted to do them -- that you weren't able to implement? If so, what were they and what more would you need to do/know to implement them? 
 
-<!-- answer below -->
+There are some things that could be adjusted to make the cleaned dataset match the original more closely
+1) Reintroducing Missing Data: To match the original dataset exactly, I would need to retain rows with missing data instead of removing them. Alternatively, I could impute missing values, perhaps using the mean or median to fill in the gaps.
+2)Preserving Duplicates: If the original dataset contained duplicates that were meaningful, I would need to ensure those duplicates are kept.
 
 
 # Unguided cleaning and transformation
 
 *Optional:* If you have the time and interest, continue transforming this dataset as you please. Create new columns based on the existing ones, reformat strings, try your hand at a regex replacement, summarize by groups (factor levels), visualize a simple relationship, or anything else you can think of. To get you started, consider things like:
 
+##Extra data cleaning
+```{r}
+#| label:Fix the typo of the County
+ 
+
+
+
+
+```
+
+
+
 1. **Exploratory Data Analysis:** Use the cleaned dataset to explore relationships between variables, create visualizations, and generate insights.
+
+```{r}
+
+#| label: coreelation test 
+
+
+
+
+```
+
+
 2. **Data Transformation:** Create new variables, aggregate data, or reshape the dataset to prepare it for analysis.
+
+```{r}
+
+```
+
 3. **Split, Merge, and Reshape:** Split the dataset into multiple datasets or merge it with other datasets using `join` functions to create a new dataset. Use `pivot_longer()` and `pivot_wider()` to reshape the data.
+
+```{r}
+
+```
+
 4. **Informativity:** Consider the midwest data and its documentation. Clean/transform the dataframe into a format that is more informative, transparent, or easier to work with. For example, improve column naming conventions, create new (useful) variables, reduce redundancy, or eliminate variables that are not useful or documented.
+
+```{r}
+
+```
 
 
 # Submission & Assessment
