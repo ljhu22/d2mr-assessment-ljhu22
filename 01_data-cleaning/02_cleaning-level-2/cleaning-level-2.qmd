@@ -405,9 +405,38 @@ There are some things that could be adjusted to make the cleaned dataset match t
 ```{r}
 #| label:Fix the typo of the County
  
+library(dplyr)
+library(stringr)
 
+#rename the county to country
+messy_cleaned <- messy_cleaned %>%
+  rename(country = county)
 
+# Replace numbers with corresponding letters of County
+replace_numbers <- function(input_string) {
+  input_string %>%
+    str_replace_all("0", "o") %>%
+    str_replace_all("1", "l") %>%
+    str_replace_all("3", "e")
+}
 
+#Clean the country name
+messy_cleaned <- messy_cleaned %>%
+  mutate(country = replace_numbers(country)) %>%
+  mutate(country = str_to_title(country)) 
+  
+#Clean the state names
+ mutate(state = case_when(
+    state %in% c("Ill.", "Illinois") ~ "IL",
+    state %in% c("Mich.", "Michigan") ~ "MI",
+    state %in% c("Wis.", "Wisconsin") ~ "WI",
+    state %in% c("Ind.", "Indiana") ~ "IN",
+    state %in% c("OHIO", "Ohio") ~ "OH",
+    TRUE ~ state
+  ))
+
+# View the cleaned dataset
+head(messy_cleaned)
 
 ```
 
@@ -417,10 +446,148 @@ There are some things that could be adjusted to make the cleaned dataset match t
 
 ```{r}
 
-#| label: coreelation test 
+#| 1. label: Create Visualizations 1.0
+
+#load the package
+library(dplyr)
+library(ggplot2)
+install.packages(corrplot)
+library(corrplot)
+
+# View the statistics summary and the structure
+summary(messy_cleaned)
+str(messy_cleaned)
+
+# 1.1 Plotting the pie chart of each ehicity group
+ethnicity_data <- messy_cleaned %>%
+  select(popwhite, popblack, popamerindian, popasian, popother) %>%
+  summarise(across(everything(), sum, na.rm = TRUE)) %>%
+  pivot_longer(everything(), names_to = "Ethnicity", values_to = "Population")
+
+ggplot(ethnicity_data, aes(x = "", y = Population, fill = Ethnicity)) +
+  geom_bar(stat = "identity", width = 1) + 
+  coord_polar(theta = "y") + 
+  theme_void() + 
+  labs(title = "Ethnicity Distribution") + 
+  theme(legend.title = element_blank(), 
+        legend.position = "right")
+
+# 1.2 Create histograms for each state grouped by 'country'
+ggplot(messy_cleaned, aes(x = popdensity)) +
+  geom_histogram(bins = 30, fill = "skyblue", color = "black") +
+  facet_wrap(~ state) +  # Create a separate plot for each state
+  theme_minimal() +
+  labs(title = "Population Density Distribution by State", 
+       x = "Population Density", y = "Frequency") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 
 
+# 1.3 Plot histogram of population density
+ggplot(messy_cleaned, aes(x = popdensity)) +
+  geom_histogram(bins = 30, fill = "blue", color = "black") +
+  theme_minimal() +
+  labs(title = "Distribution of Population Density", x = "Population Density", y = "Frequency")
 
+
+# 1.4Scatter plot to show the relationship between 'popdensity' and 'poptotal'
+ggplot(messy_cleaned, aes(x = popdensity, y = poptotal)) +
+  geom_point(color = "red") +
+  theme_minimal() +
+  labs(title = "Population Density vs. Total Population", x = "Population Density", y = "Total Population")
+
+
+#| 2. label: Find Corrleation & Insights 
+library(tidyverse)
+
+# Select numeric columns
+correlation_data <- messy_cleaned %>%
+  select_if(is.numeric)
+
+# Calculate the correlation matrix
+correlation_matrix <- cor(correlation_data, use = "complete.obs")
+
+# Generte the correlation matrix into a data frame
+correlation_df <- as.data.frame(as.table(correlation_matrix))
+
+# Filter for strong correlations
+strong_correlations <- correlation_df %>%
+  filter(abs(Freq) > 0.8 & Var1 != Var2)  # abs() to get both positive and negative correlations
+
+#| 3. label: Create Visualizations 2.0
+
+# 3.1 Boxplot to show population density by poverty status
+ggplot(messy_cleaned, aes(x = poverty_status, y = popdensity, fill = poverty_status)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Population Density by Poverty Status", 
+       x = "Poverty Status", y = "Population Density") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# 3.2 Violin plot for distribution of population total by region category
+ggplot(messy_cleaned, aes(x = category, y = poptotal, fill = category)) +
+  geom_violin() +
+  theme_minimal() +
+  labs(title = "Population Total by Region Category", 
+       x = "Region Category", y = "Population Total") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# 3.3 Scatter plot of population density vs. total population, grouped by region category
+ggplot(messy_cleaned, aes(x = popdensity, y = poptotal)) +
+  geom_point(aes(color = category)) +
+  facet_grid(~ category) + 
+  theme_minimal() +
+  labs(title = "Population Density vs. Total Population by Region", 
+       x = "Population Density", y = "Total Population")
+
+# 3.4 Plot the correlation heatmap of numeric variables
+library(corrplot)
+corrplot(correlation_matrix, method = "color", 
+         type = "upper", 
+         tl.cex = 0.8,
+         addCoef.col = "black", 
+         title = "Correlation Heatmap", 
+         mar = c(0,0,1,0))
+
+# 3.5 Bar plot of population proportions by ethnicity
+ggplot(ethnicity_data, aes(x = Ethnicity, y = Population, fill = Ethnicity)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Population Proportions by Ethnicity", x = "Ethnicity", y = "Population") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# 3.6 Bar plot of population total by poverty status
+ggplot(messy_cleaned, aes(x = poverty_status, y = poptotal, fill = poverty_status)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Population Total by Poverty Status", 
+       x = "Poverty Status", y = "Population Total")
+
+# 3.7 Scatter plot to explore poverty percentage vs. population density
+ggplot(messy_cleaned, aes(x = percpovertyknown, y = popdensity)) +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Poverty Percentage vs Population Density", 
+       x = "Poverty Percentage", y = "Population Density")
+
+#4.4 Mediation Model
+
+install.packages(c("lm.beta", "pwr", "ggplot2", "segmented"))
+library(lm.beta)
+library(pwr)
+library(ggplot2)
+library(segmented)
+library(readr)
+
+# Changing data types
+messy_cleaned <- messy_cleaned %>%
+  mutate(
+    percadultpoverty = as.numeric(percadultpoverty),
+  )
+
+# Find the Mediation role of the log_popdensity
+source("/Users/linjinhu/Desktop/process.R")
+process (data=messy_cleaned, y="percadultpoverty", x="percchildbelowpovert", m='log_popdensity',
+         model=4, total=1, stand=1, boot=10000)
 
 ```
 
@@ -429,19 +596,124 @@ There are some things that could be adjusted to make the cleaned dataset match t
 
 ```{r}
 
+#| 1. label: Create new variables
+# 1.1 Create a categorical variable based on quantiles of population density
+messy_cleaned <- messy_cleaned %>%
+  mutate(pop_density_quantile = ntile(popdensity, 4))  
+
+# 1.2 Create a new categorical variable for Urban vs. Rural based on population density
+messy_cleaned <- messy_cleaned %>%
+  mutate(urban_rural = case_when(
+    popdensity > 1000 ~ "Urban",
+    popdensity <= 1000 ~ "Rural",
+    TRUE ~ "Unknown"
+  ))
+
+# 1.3 Create a new variable that sums population by ethnic group
+messy_cleaned <- messy_cleaned %>%
+  mutate(total_ethnicity_population = popwhite + popblack + popamerindian + popasian + popother)
+
+# 1.4 Calculate the proportion of each ethnicity group
+messy_cleaned <- messy_cleaned %>%
+  mutate(
+    prop_white = popwhite / poptotal,
+    prop_black = popblack / poptotal,
+    prop_amerindian = popamerindian / poptotal,
+    prop_asian = popasian / poptotal,
+    prop_other = popother / poptotal
+  )
+
+#| 2. label: Aggregating Data
+
+#2.1 Summarize the total population by region or category
+aggregated_data <- messy_cleaned %>%
+  group_by(category) %>%
+  summarise(total_population = sum(poptotal, na.rm = TRUE),
+            avg_popdensity = mean(popdensity, na.rm = TRUE),
+            median_popdensity = median(popdensity, na.rm = TRUE),
+  ) 
+
+#2.2 Summarize population and poverty data by category
+aggregated_data2 <- messy_cleaned %>%
+  group_by(category, poverty_status) %>%
+  summarise(mean_poverty = mean(percpovertyknown, na.rm = TRUE),
+            total_population = sum(poptotal, na.rm = TRUE),
+            .groups = "drop")
+
+
+
+
 ```
 
 3. **Split, Merge, and Reshape:** Split the dataset into multiple datasets or merge it with other datasets using `join` functions to create a new dataset. Use `pivot_longer()` and `pivot_wider()` to reshape the data.
 
 ```{r}
 
+#| 1. label: Splitting the Dataset into Multiple Datasets
+# 1.1 Splitting the data based on a categorical variable
+category_split <- messy_cleaned %>%
+  group_by(category) %>%
+  group_split()
+
+# 1.2 Split data by 'poverty_status' and 'category'
+poverty_category_split <- messy_cleaned %>%
+  group_by(poverty_status, category) %>%
+  group_split()
+
+#| 2. label:Merging Datasets
+#2.1 Self join the dataset based on the 'category' column
+self_joined_data <- messy_cleaned %>%
+  left_join(messy_cleaned, by = "category", suffix = c("_left", "_right"))
+
+# View the resulting data
+head(self_joined_data)
+
+# 2.2 Self join based on multiple columns: 'category' and 'state'
+self_joined_multiple <- messy_cleaned %>%
+  left_join(messy_cleaned, by = c("category", "state"), suffix = c("_left", "_right"))
+
+# View the resulting data
+head(self_joined_multiple)
+
+#| 3. Reshape
+# 3.1 Remove 'pop_density_category' and pivot only the population-related columns
+long_data <- messy_cleaned %>%
+  select(-pop_density_category) %>%  # Exclude the pop_density_category column
+  pivot_longer(cols = starts_with("pop"), 
+               names_to = "year", 
+               values_to = "population")
+
+# View the transformed data
+head(long_data)
+
+# 3.2 Pivoting data from long to wide format
+wide_data <- messy_cleaned %>%
+  pivot_wider(names_from = "year", values_from = "population")
+
+# View the transformed data
+head(wide_data)
+
+# 3.3  Pivoting data using multiple key variables
+
+# Check the columns that all with pop
+head(messy_cleaned %>%
+  select(starts_with("pop")))
+
+# Pivot the data with multiple key variables and repair duplicated column names
+multi_pivot_data <- messy_cleaned %>%
+  select(-pop_density_category) %>%
+  pivot_longer(cols = starts_with("pop"),
+               names_to = c("year", "category"),
+               names_sep = "_",
+               values_to = "population",
+               names_repair = "unique") 
+
+# View the transformed data
+head(multi_pivot_data)
+
 ```
 
 4. **Informativity:** Consider the midwest data and its documentation. Clean/transform the dataframe into a format that is more informative, transparent, or easier to work with. For example, improve column naming conventions, create new (useful) variables, reduce redundancy, or eliminate variables that are not useful or documented.
-
-```{r}
-
-```
 
 
 # Submission & Assessment
